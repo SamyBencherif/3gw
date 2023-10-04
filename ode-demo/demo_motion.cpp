@@ -494,7 +494,7 @@ int main (int argc, char **argv)
     // run simulation
     while (true)
     {
-      step();
+      simLoop(0);
 
       // if a key is pressed, run command
       char c = 0;
