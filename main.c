@@ -5,6 +5,8 @@
 #include <rlgl.h>
 #include <raymath.h>
 
+#include "tinyphysicsengine.h" /* 995316e5 */
+
 float game_time = 0;
 
 #include "graphics.c"
@@ -28,7 +30,7 @@ void update(void)
   ClearBackground(RAYWHITE);
   BeginMode3D(camera);
 
-  world();
+  world_update();
 
   EndMode3D();
 
