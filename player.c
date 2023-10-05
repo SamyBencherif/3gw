@@ -6,23 +6,12 @@ bool mouse_ready = false;
 #define JUMP_HEIGHT 6
 #define JUMP_DURATION .5
 
-#define NOCLIP false
+#define NOCLIP true
 
 float timer_jump = 0;
 Vector3 forward = {0, 0, 0}; // player's forward direction
 
 float player_radius = 1;
-
-#define SHOW_FLOORPLAN true
-#define FP_LINE_SIZE 256
-int fp_line_count = 0;
-typedef struct Line {
-  int x1;
-  int y1;
-  int x2;
-  int y2;
-} Line;
-Line fp_lines[FP_LINE_SIZE];
 
 void player_move(float x, float y)
 {
@@ -54,12 +43,12 @@ void player_look(float x, float y)
 // ported from CALICO main.js intersects
 Vector3 nearest(Vector3 pos, Line wall)
 {
-  // This is a two dimensional function that applies to the XZ plane.
+  // This is a two dimensional function that applies to the XY plane.
   // given a specific wall and a pos, it tells you the nearest point to pos
   // on the line of wall.
   // 
-  // the point is returned in the XZ fields of the return value
-  // the Y field is set to the parametrization parameter, t.
+  // the point is returned in the XY fields of the return value
+  // the Z field is set to the parametrization parameter, t.
   // it is in the range [0, 1] when the point rests on the wall
 
   float w0 = wall.x1; float w1 = wall.y1; float w2 = wall.x2; float w3 = wall.y2;
@@ -89,32 +78,6 @@ void player_init()
   DisableCursor();
 
   SetTargetFPS(60);
-
-  int box_size = 50;
-
-  fp_lines[fp_line_count].x1 = -box_size; 
-  fp_lines[fp_line_count].y1 = -box_size; 
-  fp_lines[fp_line_count].x2 = -box_size; 
-  fp_lines[fp_line_count].y2 = box_size; 
-  fp_line_count++;
-
-  fp_lines[fp_line_count].x1 = -box_size; 
-  fp_lines[fp_line_count].y1 = box_size; 
-  fp_lines[fp_line_count].x2 = box_size; 
-  fp_lines[fp_line_count].y2 = box_size; 
-  fp_line_count++;
-
-  fp_lines[fp_line_count].x1 = box_size; 
-  fp_lines[fp_line_count].y1 = box_size; 
-  fp_lines[fp_line_count].x2 = box_size; 
-  fp_lines[fp_line_count].y2 = -box_size; 
-  fp_line_count++;
-
-  fp_lines[fp_line_count].x1 = box_size; 
-  fp_lines[fp_line_count].y1 = -box_size; 
-  fp_lines[fp_line_count].x2 = -box_size; 
-  fp_lines[fp_line_count].y2 = -box_size; 
-  fp_line_count++;
 }
 
 void first_person_controller()
@@ -189,31 +152,5 @@ void first_person_controller()
     camera.target.y = camera.position.y + forward.y;
     camera.target.z = camera.position.z + forward.z;
 
-  }
-
-  if (!NOCLIP)
-  for (int i=0; i<fp_line_count; i++)
-  {
-    Vector3 I = nearest(camera.position, fp_lines[i]);
-    // I.x - x coord
-    // I.y - y coord
-    // I.z - t value
-
-    float mag = sqrt(pow(camera.position.x - I.x, 2) + pow(camera.position.y - I.y, 2));
-    if (0<=I.z && I.z<=1 && mag <= player_radius) 
-    {
-      Vector3 diff = Vector3Subtract(camera.position, I);
-      float diffM = sqrt(diff.x*diff.x + diff.y*diff.y);
-      diff.x /= diffM;
-      diff.y /= diffM;
-
-      Vector3 offset = Vector3Scale(diff, player_radius-diffM);
-      offset.z = 0;
-
-      camera.position = Vector3Add(camera.position, offset);
-      camera.target.x = camera.position.x + forward.x;
-      camera.target.y = camera.position.y + forward.y;
-      camera.target.z = camera.position.z + forward.z;
-    }
   }
 }

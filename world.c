@@ -1,16 +1,6 @@
 
-Model world_model;
-Texture2D world_tex;
-
-int line_edit_index = -1;
-
 void world_init()
 {
-  world_model = LoadModel("resources/worlds/demo_w001_stairs.obj");
-  world_tex = LoadTexture("resources/worlds/std_texture.001.png");
-
-  // I use only a single material and texture
-  SetMaterialTexture(world_model.materials, MATERIAL_MAP_DIFFUSE, world_tex);
 }
 
 void scene_discotech()
@@ -18,115 +8,17 @@ void scene_discotech()
   float t = game_time;
   // Draw cube series
   for (int x=-10; x<11; x++)
-    for (int z=-10; z<11; z++)
+    for (int y=-10; y<11; y++)
     {
-      float displacement = (1+(abs(x))*(abs(z))/10);
-      displacement *= (.5+.5*cos(x/10.+z/10.+6*t));
-      Vector3 position = {10*x, displacement/2, 10*z};
-      Color color = {200, 40+5*x, 40*z, 255};
-      DrawCube(position, 3, 1+displacement, 3, color); 
+      float displacement = (1+(abs(x))*(abs(y))/10);
+      displacement *= (.5+.5*cos(x/10.+y/10.+6*t));
+      Vector3 position = {10*x, 10*y, displacement/2};
+      Color color = {200, 40+5*x, 40*y, 255};
+      DrawCube(position, 3, 3, 1+displacement, color); 
     }
-}
-
-void scene_model()
-{
-  // Draw world model with baked lightmap
-  float scale = 1;
-  Color tint = WHITE;
-  Vector3 world_pos = {0, 0, 0};
-
-  if (IsModelReady(world_model) && IsTextureReady(world_tex))
-    DrawModel(world_model, world_pos, scale, tint);
-  else
-    DrawCube(world_pos, 3, 3, 3, RED);
 }
 
 void world()
 {
-  //scene_discotech()
-  scene_model();
-
-  if (SHOW_FLOORPLAN && fp_line_count)
-  {
-    for (int i=0; i<fp_line_count; i++)
-    {
-      Vector3 start = {0, 0, 0};
-      Vector3 end = {0, 0, 0};
-      start.x = fp_lines[i].x1;
-      start.z = fp_lines[i].z1;
-      end.x = fp_lines[i].x2;
-      end.z = fp_lines[i].z2;
-      DrawThickLine3D(start, end, .3, BLACK);
-    }
-
-    // show line selection
-    int nearest_index = 0;
-    Vector3 nearest_vector = nearest(camera.target, fp_lines[0]);
-    float nearest_t = nearest_vector.y;
-    nearest_vector.y = 0;
-    for (int i=1; i<fp_line_count; i++)
-    {
-  
-      Vector3 n = nearest(camera.target, fp_lines[i]);
-      float t = n.y;
-      n.y = 0;
-
-      if (
-        Vector3Length(Vector3Subtract(camera.target, n))
-        <
-        Vector3Length(Vector3Subtract(camera.target, nearest_vector))
-      )
-      { 
-        nearest_vector = n;
-        nearest_index = i;
-        nearest_t = t;
-      }
-    }
-    if (0 <= nearest_t && nearest_t <= 1)
-      DrawSphere(nearest_vector, .5, YELLOW); 
-
-    if (IsKeyPressed(KEY_E)) 
-    {
-      if (line_edit_index == -1)
-      {
-        line_edit_index = 2*nearest_index;
-
-        // if nearest_vector is closer to x2,z2 then make line_edit_index odd
-        Vector3 x1z1; Vector3 x2z2;
-
-        x1z1.x = fp_lines[nearest_index].x1;
-        x1z1.z = fp_lines[nearest_index].z1;
-        x1z1.y = 0;
-
-        x2z2.x = fp_lines[nearest_index].x2;
-        x2z2.z = fp_lines[nearest_index].z2;
-        x2z2.y = 0;
-
-        if (Vector3Length(Vector3Subtract(nearest_vector, x2z2)) < Vector3Length(Vector3Subtract(nearest_vector, x1z1)))
-          line_edit_index++;
-      }
-      else
-        line_edit_index = -1;
-    }
-
-    // modify line coordinates
-    if (line_edit_index != -1)
-    {
-      Vector3 cursor3d = Vector3Subtract(camera.target, camera.position);
-      cursor3d = Vector3Scale(cursor3d, 5);
-      cursor3d = Vector3Add(camera.position, cursor3d);
-
-      if (line_edit_index % 2 == 1)
-      {
-        fp_lines[line_edit_index/2].x2 = cursor3d.x;
-        fp_lines[line_edit_index/2].z2 = cursor3d.z;
-      }
-      else
-      {
-        fp_lines[line_edit_index/2].x1 = cursor3d.x;
-        fp_lines[line_edit_index/2].z1 = cursor3d.z;
-      }
-    }
-
-  }
+  scene_discotech();
 }

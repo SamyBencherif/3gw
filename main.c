@@ -5,13 +5,13 @@
 #include <rlgl.h>
 #include <raymath.h>
 
+#include <ode/ode.h> /* 0.16.4 */
+
 float game_time = 0;
 
 #include "graphics.c"
-
 #include "player.c"
 #include "pause.c"
-
 #include "world.c"
 
 void update(void)
@@ -43,7 +43,8 @@ void update(void)
     DrawLine(GetScreenWidth()/2-size, GetScreenHeight()/2, GetScreenWidth()/2+size, GetScreenHeight()/2, color); 
     DrawLine(GetScreenWidth()/2, GetScreenHeight()/2-size, GetScreenWidth()/2, GetScreenHeight()/2+size, color); 
 
-    DrawSphere((Vector3){0,0,0}, 20, YELLOW); 
+    DrawSphere((Vector3){0,0,0}, 20, YELLOW);
+
     // show line selection
     if (SHOW_FLOORPLAN)
     {

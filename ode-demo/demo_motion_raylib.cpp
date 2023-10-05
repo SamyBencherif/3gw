@@ -50,57 +50,6 @@ const dReal mov1_speed = 0.2;
 
 dVector3 mov2_vel = { 0.2, 0.1, 0.25};
 
-// Generate contact info for movement 1
-static void contactplat_1(dContact &contact)
-{
-    contact.surface.mode |= dContactMotionN;
-    contact.surface.motionN = mov1_speed;
-}
-
-
-// Generate contact info for movement 1
-static void contactplat_2(dContact &contact)
-{
-    /*
-      For arbitrary contact directions we need to project the moving
-      geom's velocity against the contact normal and fdir1, fdir2
-      (obtained with dPlaneSpace()). Assuming moving geom=g2
-      (so the contact joint is in the moving geom's reference frame):
-      motion1 = dCalcVectorDot3(fdir1, vel);
-      motion2 = dCalcVectorDot3(fdir2, vel);
-      motionN = dCalcVectorDot3(normal, vel);
-
-      For geom=g1 just negate motionN and motion2. fdir1 is an arbitrary
-      vector, so there's no need to negate motion1.
-
-    */
-    contact.surface.mode |= 
-        dContactMotionN |                   // velocity along normal
-        dContactMotion1 | dContactMotion2 | // and along the contact plane
-        dContactFDir1;                      // don't forget to set the direction 1
-
-
-    // This is a convenience function: given a vector, it finds other 2 perpendicular vectors
-    dVector3 motiondir1, motiondir2;
-    dPlaneSpace(contact.geom.normal, motiondir1, motiondir2);
-    for (int i=0; i<3; ++i)
-        contact.fdir1[i] = motiondir1[i];
-    
-
-    dReal inv = 1;
-    if (contact.geom.g1 == platform)
-        inv = -1;
-    
-    contact.surface.motion1 = dCalcVectorDot3(mov2_vel, motiondir1);
-    contact.surface.motion2 = inv * dCalcVectorDot3(mov2_vel, motiondir2);
-    contact.surface.motionN = inv * dCalcVectorDot3(mov2_vel, contact.geom.normal);
-
-}
-
-
-
-
-
 static void nearCallback (void *, dGeomID o1, dGeomID o2)
 {
     dMatrix3 RI;
@@ -118,20 +67,9 @@ static void nearCallback (void *, dGeomID o1, dGeomID o2)
     for (int i=0; i< numc; i++) {
         contact[i].surface.mode = dContactBounce;
         contact[i].surface.mu = 1;
-        contact[i].surface.bounce = 0.25;
+        contact[i].surface.bounce = 0.10;
         contact[i].surface.bounce_vel = 0.01;
         
-        if (isplatform) {
-            switch (mov_type) {
-                case 1:
-                    contactplat_1(contact[i]);
-                    break;
-                case 2:
-                    contactplat_2(contact[i]);
-                    break;
-            }
-        }
-
         dJointID c = dJointCreateContact (world,contactgroup,contact+i);
         dJointAttach (c, dGeomGetBody(o1), dGeomGetBody(o2));
         //if (show_contacts) 
@@ -318,6 +256,7 @@ void drawGeom (dGeomID g, const dReal *pos, const dReal *R, int show_aabb)
         rlTranslatef(rlPos.x, rlPos.y, rlPos.z);
 
         // derive angle and axis of rotation from Quaternion
+        // Thx to https://eater.net/quaternions/video/intro for explaining Quaternions to me !
         float angle = acos(Q[0])*2;
         float axis_x = Q[1];
         float axis_y = Q[2];
