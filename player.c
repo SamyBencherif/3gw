@@ -2,8 +2,10 @@ Camera camera = { 0 };
 Vector2 look = {0., 0.};
 bool mouse_ready = false;
 
-#define PLAYER_HEIGHT 15
-#define JUMP_HEIGHT 6
+#define PLAYER_SPEED 1
+
+#define PLAYER_HEIGHT 23
+#define JUMP_HEIGHT 12
 #define JUMP_DURATION .5
 
 #define NOCLIP false
@@ -58,8 +60,6 @@ void player_init()
 
 void first_person_controller()
 {
-  float speed = .5;
-
   // compute forward look direction
   float r = cos(look.y);
   forward.x = r*cos(look.x-PI/2);
@@ -80,13 +80,13 @@ void first_person_controller()
   walkForward = Vector2Normalize(walkForward);
 
   if (IsKeyDown(KEY_W))
-    player_move(speed*walkForward.x, speed*walkForward.y);
+    player_move(PLAYER_SPEED*walkForward.x, PLAYER_SPEED*walkForward.y);
   if (IsKeyDown(KEY_S))
-    player_move(speed*-walkForward.x, speed*-walkForward.y);
+    player_move(PLAYER_SPEED*-walkForward.x, PLAYER_SPEED*-walkForward.y);
   if (IsKeyDown(KEY_A))
-    player_move(speed*right.x, speed*right.y);
+    player_move(PLAYER_SPEED*right.x, PLAYER_SPEED*right.y);
   if (IsKeyDown(KEY_D))
-    player_move(speed*-right.x, speed*-right.y);
+    player_move(PLAYER_SPEED*-right.x, PLAYER_SPEED*-right.y);
 
   float look_speed = .001;
 
