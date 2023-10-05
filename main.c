@@ -81,16 +81,6 @@ int main(void)
   while (!IsAudioDeviceReady());
   SetMasterVolume(.25);
 
-  camera.position = (Vector3){ 0.0, 5.0, 0.0f };
-  camera.target = (Vector3){ 0.0, 5.0, -1.0f };
-  camera.up = (Vector3){ 0.0, 1.0, 0.0f };
-  camera.fovy = 80.0f;
-  camera.projection = CAMERA_PERSPECTIVE;
-
-  DisableCursor();
-
-  SetTargetFPS(60);
-
   player_init();
   world_init();
 

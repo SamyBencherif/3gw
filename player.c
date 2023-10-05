@@ -6,7 +6,7 @@ bool mouse_ready = false;
 #define JUMP_HEIGHT 6
 #define JUMP_DURATION .5
 
-#define NOCLIP true
+#define NOCLIP false
 
 float timer_jump = 0;
 Vector3 forward = {0, 0, 0}; // player's forward direction
@@ -18,16 +18,16 @@ float player_radius = 1;
 int fp_line_count = 0;
 typedef struct Line {
   int x1;
-  int z1;
+  int y1;
   int x2;
-  int z2;
+  int y2;
 } Line;
 Line fp_lines[FP_LINE_SIZE];
 
-void player_move(float x, float z)
+void player_move(float x, float y)
 {
   camera.position.x += x;
-  camera.position.z += z;
+  camera.position.y += y;
 }
 
 void player_jump()
@@ -37,8 +37,8 @@ void player_jump()
   else timer_jump = 0;
 
   // let's call this 'stylized jumping' instead of physically based
-  camera.position.y = PLAYER_HEIGHT + sin(timer_jump*PI/JUMP_DURATION) * JUMP_HEIGHT;
-  camera.target.y = camera.position.y + forward.y;
+  camera.position.z = PLAYER_HEIGHT + sin(timer_jump*PI/JUMP_DURATION) * JUMP_HEIGHT;
+  camera.target.z = camera.position.z + forward.z;
 }
 
 void player_look(float x, float y)
@@ -62,8 +62,8 @@ Vector3 nearest(Vector3 pos, Line wall)
   // the Y field is set to the parametrization parameter, t.
   // it is in the range [0, 1] when the point rests on the wall
 
-  float w0 = wall.x1; float w1 = wall.z1; float w2 = wall.x2; float w3 = wall.z2;
-  float px = pos.x; float py = pos.z;
+  float w0 = wall.x1; float w1 = wall.y1; float w2 = wall.x2; float w3 = wall.y2;
+  float px = pos.x; float py = pos.y;
 
   Vector2 wtop = {px-w0, py-w1};
   Vector2 wtow = {w2-w0, w3-w1};
@@ -73,37 +73,47 @@ Vector3 nearest(Vector3 pos, Line wall)
 
   float t = (wtop.x*wtow.x + wtop.y*wtow.y)/wtowM;
 
-  Vector3 result = {w0+(w2-w0)*t, t, w1+(w3-w1)*t};
+  Vector3 result = {w0+(w2-w0)*t, w1+(w3-w1)*t, t};
 
   return result;
 }
 
 void player_init()
 {
+  camera.position = (Vector3){ 0.0, 0.0, 5.0f };
+  camera.target = (Vector3){ 0.0, -1.0, 5.0f };
+  camera.up = (Vector3){ 0.0, 0.0, 1.0f };
+  camera.fovy = 80.0f;
+  camera.projection = CAMERA_PERSPECTIVE;
+
+  DisableCursor();
+
+  SetTargetFPS(60);
+
   int box_size = 50;
 
   fp_lines[fp_line_count].x1 = -box_size; 
-  fp_lines[fp_line_count].z1 = -box_size; 
+  fp_lines[fp_line_count].y1 = -box_size; 
   fp_lines[fp_line_count].x2 = -box_size; 
-  fp_lines[fp_line_count].z2 = box_size; 
+  fp_lines[fp_line_count].y2 = box_size; 
   fp_line_count++;
 
   fp_lines[fp_line_count].x1 = -box_size; 
-  fp_lines[fp_line_count].z1 = box_size; 
+  fp_lines[fp_line_count].y1 = box_size; 
   fp_lines[fp_line_count].x2 = box_size; 
-  fp_lines[fp_line_count].z2 = box_size; 
+  fp_lines[fp_line_count].y2 = box_size; 
   fp_line_count++;
 
   fp_lines[fp_line_count].x1 = box_size; 
-  fp_lines[fp_line_count].z1 = box_size; 
+  fp_lines[fp_line_count].y1 = box_size; 
   fp_lines[fp_line_count].x2 = box_size; 
-  fp_lines[fp_line_count].z2 = -box_size; 
+  fp_lines[fp_line_count].y2 = -box_size; 
   fp_line_count++;
 
   fp_lines[fp_line_count].x1 = box_size; 
-  fp_lines[fp_line_count].z1 = -box_size; 
+  fp_lines[fp_line_count].y1 = -box_size; 
   fp_lines[fp_line_count].x2 = -box_size; 
-  fp_lines[fp_line_count].z2 = -box_size; 
+  fp_lines[fp_line_count].y2 = -box_size; 
   fp_line_count++;
 }
 
@@ -113,21 +123,21 @@ void first_person_controller()
 
   // compute forward look direction
   float r = cos(look.y);
-  forward.x = -r*cos(look.x-PI/2);
-  forward.y = -sin(look.y);
-  forward.z = -r*sin(look.x-PI/2);
+  forward.x = r*cos(look.x-PI/2);
+  forward.y = r*sin(look.x-PI/2);
+  forward.z = sin(look.y);
   
   //forward = Vector3Normalize(forward);
 
   Vector3 right = {0, 0, 0};
   // compute orthogonal complement to forward
   right.x = cos(look.x);
-  right.y = 0;
-  right.z = sin(look.x);
+  right.y = sin(look.x);
+  right.z = 0;
 
   //right = Vector3Normalize(right);
 
-  Vector2 walkForward = {forward.x, forward.z};
+  Vector2 walkForward = {forward.x, forward.y};
   walkForward = Vector2Normalize(walkForward);
 
   if (IsKeyDown(KEY_W))
@@ -135,9 +145,9 @@ void first_person_controller()
   if (IsKeyDown(KEY_S))
     player_move(speed*-walkForward.x, speed*-walkForward.y);
   if (IsKeyDown(KEY_A))
-    player_move(speed*right.x, speed*right.z);
+    player_move(speed*right.x, speed*right.y);
   if (IsKeyDown(KEY_D))
-    player_move(speed*-right.x, speed*-right.z);
+    player_move(speed*-right.x, speed*-right.y);
 
   float look_speed = .001;
 
@@ -156,7 +166,7 @@ void first_person_controller()
   look_input.x += ijkl_look_speed * (((int)IsKeyDown(KEY_L)) - ((int)IsKeyDown(KEY_J)));
   look_input.y += ijkl_look_speed * (((int)IsKeyDown(KEY_K)) - ((int)IsKeyDown(KEY_I)));
 
-  player_look(look_speed*look_input.x, look_speed*look_input.y);
+  player_look(-look_speed*look_input.x, -look_speed*look_input.y);
 
   camera.target.x = camera.position.x + forward.x;
   camera.target.y = camera.position.y + forward.y;
@@ -167,13 +177,13 @@ void first_person_controller()
     mouse_ready = true;
 
   if (!NOCLIP)
-  player_jump();
+    player_jump();
   else
   {
     if (IsKeyDown(KEY_SPACE))
-      camera.position.y += .3;
+      camera.position.z += .3;
     if (IsKeyDown(KEY_LEFT_SHIFT))
-      camera.position.y -= .3;
+      camera.position.z -= .3;
 
     camera.target.x = camera.position.x + forward.x;
     camera.target.y = camera.position.y + forward.y;
@@ -186,19 +196,19 @@ void first_person_controller()
   {
     Vector3 I = nearest(camera.position, fp_lines[i]);
     // I.x - x coord
-    // I.y - t value
-    // I.z - z coord
+    // I.y - y coord
+    // I.z - t value
 
-    float mag = sqrt(pow(camera.position.x - I.x, 2) + pow(camera.position.z - I.z, 2));
-    if (0<=I.y && I.y<=1 && mag <= player_radius) 
+    float mag = sqrt(pow(camera.position.x - I.x, 2) + pow(camera.position.y - I.y, 2));
+    if (0<=I.z && I.z<=1 && mag <= player_radius) 
     {
       Vector3 diff = Vector3Subtract(camera.position, I);
-      float diffM = sqrt(diff.x*diff.x + diff.z*diff.z);
+      float diffM = sqrt(diff.x*diff.x + diff.y*diff.y);
       diff.x /= diffM;
-      diff.z /= diffM;
+      diff.y /= diffM;
 
       Vector3 offset = Vector3Scale(diff, player_radius-diffM);
-      offset.y = 0;
+      offset.z = 0;
 
       camera.position = Vector3Add(camera.position, offset);
       camera.target.x = camera.position.x + forward.x;

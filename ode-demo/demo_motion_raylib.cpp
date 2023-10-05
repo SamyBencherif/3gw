@@ -1,25 +1,3 @@
-/*************************************************************************
- *                                                                       *
- * Open Dynamics Engine, Copyright (C) 2001,2002 Russell L. Smith.       *
- * All rights reserved.  Email: russ@q12.org   Web: www.q12.org          *
- *                                                                       *
- * This library is free software; you can redistribute it and/or         *
- * modify it under the terms of EITHER:                                  *
- *   (1) The GNU Lesser General Public License as published by the Free  *
- *       Software Foundation; either version 2.1 of the License, or (at  *
- *       your option) any later version. The text of the GNU Lesser      *
- *       General Public License is included with this library in the     *
- *       file LICENSE.TXT.                                               *
- *   (2) The BSD-style license that is included with this library in     *
- *       the file LICENSE-BSD.TXT.                                       *
- *                                                                       *
- * This library is distributed in the hope that it will be useful,       *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the files    *
- * LICENSE.TXT and LICENSE-BSD.TXT for more details.                     *
- *                                                                       *
- *************************************************************************/
-
 /*
 Shows spawning and simulating of 3D physics using ODE
 
@@ -28,12 +6,14 @@ The first step is to remove all DrawStuff calls, replacing with a comment that s
 We are using ODE with single precision
 */
 
-
 //#include <unistd.h> // for usleep()
 #include <ode/ode.h>
+#include "raylib.h"
+#include "rlgl.h"
+#include "raymath.h"
+#include "../player.c"
 
 // some constants
-
 #define NUM 100			// max number of objects
 #define DENSITY (5.0)		// density of all objects
 #define GPB 3			// maximum number of geometries per body
@@ -70,24 +50,6 @@ const dReal mov1_speed = 0.2;
 
 dVector3 mov2_vel = { 0.2, 0.1, 0.25};
 
-
-
-
-/****************************************************************
- *  Movement 1: move platform up, reset every 80 units of time. *
- *      This is the simplest case                               *
- ****************************************************************/
-static void moveplat_1(dReal stepsize)
-{
-    mov_time += stepsize;
-    if (mov_time > 80)
-        mov_time = 0;
-
-    platpos[0] = platpos[1] = 0;
-    // the platform moves up (Z) at constant speed: mov1_speed
-    platpos[2] = mov1_speed * mov_time;
-}
-
 // Generate contact info for movement 1
 static void contactplat_1(dContact &contact)
 {
@@ -95,25 +57,6 @@ static void contactplat_1(dContact &contact)
     contact.surface.motionN = mov1_speed;
 }
 
-
-
-/****************************************************************
- *  Movement 2: move platform along direction mov2_vel, reset   *
- *  every 80 units of time.                                     *
- *      This is the most general case: the geom moves along     *
- *      an arbitrary direction.                                 *
- ****************************************************************/
-static void moveplat_2(dReal stepsize)
-{
-    mov_time += stepsize;
-    if (mov_time > 80)
-        mov_time = 0;
-
-    // the platform moves at constant speed: mov2_speed
-    platpos[0] = mov2_vel[0] * mov_time;
-    platpos[1] = mov2_vel[1] * mov_time;
-    platpos[2] = mov2_vel[2] * mov_time;
-}
 
 // Generate contact info for movement 1
 static void contactplat_2(dContact &contact)
@@ -207,9 +150,9 @@ static void start()
     // GRAPHICS dsSetViewpoint (xyz,hpr);
 
     printf ("To drop another object, press:\n");
-    printf ("   b for box.\n");
-    printf ("   s for sphere.\n");
-    printf ("   c for capsule.\n");
+    printf ("   c for cube.\n");
+    printf ("   b for ball.\n");
+    printf ("   l for capsule.\n");
     printf ("   y for cylinder.\n");
     printf ("Press m to change the movement type\n");
     printf ("Press space to reset the platform\n");
@@ -238,7 +181,7 @@ static void command (int cmd)
     int setBody;
   
     cmd = locase (cmd);
-    if (cmd == 'b' || cmd == 's' || cmd == 'c' || cmd == 'y')
+    if (cmd == 'c' || cmd == 'b' || cmd == 'l' || cmd == 'y')
         {
             setBody = 0;
             if (num < NUM) {
@@ -286,11 +229,11 @@ static void command (int cmd)
             dBodySetRotation (obj[i].body,R);
             dBodySetData (obj[i].body,(void*) i);
 
-            if (cmd == 'b') {
+            if (cmd == 'c') {
                 dMassSetBox (&m,DENSITY,sides[0],sides[1],sides[2]);
                 obj[i].geom[0] = dCreateBox (space,sides[0],sides[1],sides[2]);
             }
-            else if (cmd == 'c') {
+            else if (cmd == 'l') {
                 sides[0] *= 0.5;
                 dMassSetCapsule (&m,DENSITY,3,sides[0],sides[1]);
                 obj[i].geom[0] = dCreateCapsule (space,sides[0],sides[1]);
@@ -299,7 +242,7 @@ static void command (int cmd)
                 dMassSetCylinder (&m,DENSITY,3,sides[0],sides[1]);
                 obj[i].geom[0] = dCreateCylinder (space,sides[0],sides[1]);
             }
-            else if (cmd == 's') {
+            else if (cmd == 'b') {
                 sides[0] *= 0.5;
                 dMassSetSphere (&m,DENSITY,sides[0]);
                 obj[i].geom[0] = dCreateSphere (space,sides[0]);
@@ -345,15 +288,70 @@ void drawGeom (dGeomID g, const dReal *pos, const dReal *R, int show_aabb)
     if (!g) return;
     if (!pos) pos = dGeomGetPosition (g);
     if (!R) R = dGeomGetRotation (g);
+    dQuaternion Q;
+    dGeomGetQuaternion(g, Q);
 
     int type = dGeomGetClass (g);
     if (type == dBoxClass) {
         dVector3 sides;
         dGeomBoxGetLengths (g,sides);
         // GRAPHICS dsDrawBox (pos,R,sides);
+        float scale = 10;
+
+        Vector3 rlPos;
+        rlPos.x = scale*pos[0];
+        rlPos.y = scale*pos[1];
+        rlPos.z = scale*pos[2];
+
+        Vector3 size;
+        size.x = scale*sides[0];
+        size.y = scale*sides[1];
+        size.z = scale*sides[2];
+  
+        Vector3 zero;
+        zero.x = 0;
+        zero.y = 0;
+        zero.z = 0;
+
+        // R is rotation of type dMatrix3 (a 3x4 matrix, with an extra 0 col)
+        rlPushMatrix();
+        rlTranslatef(rlPos.x, rlPos.y, rlPos.z);
+
+        // derive angle and axis of rotation from Quaternion
+        float angle = acos(Q[0])*2;
+        float axis_x = Q[1];
+        float axis_y = Q[2];
+        float axis_z = Q[3];
+        if (sin(angle) == 0)
+        {
+          axis_x = 1;
+          axis_y = 0;
+          axis_z = 0;
+        }
+        else
+        {
+          axis_x /= sin(angle);
+          axis_y /= sin(angle);
+          axis_z /= sin(angle);
+        }
+
+        // rlRotatef takes degrees
+        rlRotatef(180/PI*angle, axis_x, axis_y, axis_z);
+
+        Color c = RED;
+        c.r -= 100*sin(size.x+rlPos.x); // "random" shade of red
+        DrawCube(zero, size.x, size.y, size.z, c);
+        rlPopMatrix();
     }
     else if (type == dSphereClass) {
         // GRAPHICS dsDrawSphere (pos,R,dGeomSphereGetRadius (g));
+        float scale = 10;
+
+        Vector3 rlPos;
+        rlPos.x = scale*pos[0];
+        rlPos.y = scale*pos[1];
+        rlPos.z = scale*pos[2];
+        DrawSphere(rlPos, scale*dGeomSphereGetRadius(g), BLUE);
     }
     else if (type == dCapsuleClass) {
         dReal radius,length;
@@ -409,12 +407,6 @@ static void simLoop (int pause)
     // GRAPHICS dsSetColor (0,0,2);
     dSpaceCollide (space,0,&nearCallback);
     if (!pause) {
-        
-        if (mov_type == 1)
-            moveplat_1(stepsize);
-        else
-            moveplat_2(stepsize);
-
         dGeomSetPosition(platform, platpos[0], platpos[1], platpos[2]);
         updatecam();
         dWorldQuickStep (world,stepsize);
@@ -452,20 +444,36 @@ static void simLoop (int pause)
 }
 
 
-int main (int argc, char **argv)
+void scene_discotech()
 {
-    // setup pointers to drawstuff callback functions
-    // GRAPHICS dsFunctions fn;
-    // GRAPHICS fn.version = DS_VERSION;
-    // GRAPHICS fn.start = &start;
-    // GRAPHICS fn.step = &simLoop;
-    // GRAPHICS fn.command = &command;
-    // GRAPHICS fn.stop = 0;
-    // GRAPHICS fn.path_to_textures = DRAWSTUFF_TEXTURE_PATH;
+  float t = 0;
+  // Draw cube series
+  for (int x=-10; x<11; x++)
+    for (int z=-10; z<11; z++)
+    {
+      float displacement = (1+(abs(x))*(abs(z))/10);
+      displacement *= (.5+.5*cos(x/10.+z/10.+6*t));
+      Vector3 position = {10.f*x, 10.f*z, displacement/2};
+      Color color;// = {200, 40+5*x, 40*z, 255};
+      color.r = 200;
+      color.g = 40+5*x;
+      color.b = 40*z;
+      color.a = 255;
+      DrawCube(position, 3, 1+displacement, 3, color); 
+    }
+}
+
+int main(void)
+{
+    const int screenWidth = 800;
+    const int screenHeight = 450;
+
+    InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
 
     // create world
     dInitODE();
     start();
+    player_init();
     world = dWorldCreate();
 
     space = dHashSpaceCreate (0);
@@ -491,19 +499,38 @@ int main (int argc, char **argv)
     dGeomSetCollideBits(ground, ~2ul);
     dGeomSetCollideBits(platform, ~1ul);
 
-    // run simulation
-    while (true)
+    // Main game loop
+    while (!WindowShouldClose())    // Detect window close button or ESC key
     {
-      simLoop(0);
+        // Update
 
-      // if a key is pressed, run command
-      char c = 0;
-      if (false) command(c);
+        // Draw
+        BeginDrawing();
+				ClearBackground(RAYWHITE);
+
+        BeginMode3D(camera);
+
+        scene_discotech();
+				simLoop(0);
+
+				// if a key is pressed, run command
+				if (IsKeyPressed(KEY_C)) command('c');
+				if (IsKeyPressed(KEY_Y)) command('y');
+				if (IsKeyPressed(KEY_B)) command('b');
+  
+        first_person_controller();
+
+        EndMode3D();
+
+				//DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
+        EndDrawing();
     }
-    
+
+    // De-Initialization
     dJointGroupDestroy (contactgroup);
     dSpaceDestroy (space);
     dWorldDestroy (world);
     dCloseODE();
+    CloseWindow();        // Close window and OpenGL context
     return 0;
 }
