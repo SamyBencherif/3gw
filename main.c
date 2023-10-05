@@ -44,17 +44,6 @@ void update(void)
     DrawLine(GetScreenWidth()/2, GetScreenHeight()/2-size, GetScreenWidth()/2, GetScreenHeight()/2+size, color); 
 
     DrawSphere((Vector3){0,0,0}, 20, YELLOW);
-
-    // show line selection
-    if (SHOW_FLOORPLAN)
-    {
-      for (int i=0; i<fp_line_count; i++)
-      {
-        Vector3 n = nearest(camera.target, fp_lines[i]);
-        //DrawSphere(n, .1, YELLOW); 
-      }
-    }
-
   }
 
   // End 2D Drawing Mode

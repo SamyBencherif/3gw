@@ -6,7 +6,7 @@ bool mouse_ready = false;
 #define JUMP_HEIGHT 6
 #define JUMP_DURATION .5
 
-#define NOCLIP true
+#define NOCLIP false
 
 float timer_jump = 0;
 Vector3 forward = {0, 0, 0}; // player's forward direction
@@ -21,6 +21,9 @@ void player_move(float x, float y)
 
 void player_jump()
 {
+  // this doesn't trigger a jump, call it once per frame for jumping behavior to be enabled
+  // jump occurs when KEY_SPACE is pressed
+
   if (IsKeyPressed(KEY_SPACE) && timer_jump == 0) timer_jump = JUMP_DURATION;
   if (timer_jump > 0) timer_jump -= GetFrameTime();
   else timer_jump = 0;
@@ -38,33 +41,6 @@ void player_look(float x, float y)
   float pitch_clamp = PI/2-.0001;
   if (look.y < -pitch_clamp) look.y = -pitch_clamp;
   if (look.y > pitch_clamp) look.y = pitch_clamp;
-}
-
-// ported from CALICO main.js intersects
-Vector3 nearest(Vector3 pos, Line wall)
-{
-  // This is a two dimensional function that applies to the XY plane.
-  // given a specific wall and a pos, it tells you the nearest point to pos
-  // on the line of wall.
-  // 
-  // the point is returned in the XY fields of the return value
-  // the Z field is set to the parametrization parameter, t.
-  // it is in the range [0, 1] when the point rests on the wall
-
-  float w0 = wall.x1; float w1 = wall.y1; float w2 = wall.x2; float w3 = wall.y2;
-  float px = pos.x; float py = pos.y;
-
-  Vector2 wtop = {px-w0, py-w1};
-  Vector2 wtow = {w2-w0, w3-w1};
-  float wtowM = sqrt(wtow.x*wtow.x + wtow.y*wtow.y);
-  wtow.x /= wtowM;
-  wtow.y /= wtowM;
-
-  float t = (wtop.x*wtow.x + wtop.y*wtow.y)/wtowM;
-
-  Vector3 result = {w0+(w2-w0)*t, w1+(w3-w1)*t, t};
-
-  return result;
 }
 
 void player_init()
@@ -151,6 +127,5 @@ void first_person_controller()
     camera.target.x = camera.position.x + forward.x;
     camera.target.y = camera.position.y + forward.y;
     camera.target.z = camera.position.z + forward.z;
-
   }
 }
