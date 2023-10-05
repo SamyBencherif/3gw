@@ -28,7 +28,7 @@ void update(void)
   ClearBackground(RAYWHITE);
   BeginMode3D(camera);
 
-  world();
+  world_update();
 
   EndMode3D();
 
