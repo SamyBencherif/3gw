@@ -9,6 +9,7 @@
 
 float game_time = 0;
 
+#include "gameobject.c"
 #include "graphics.c"
 #include "player.c"
 #include "pause.c"
