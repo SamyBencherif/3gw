@@ -1,34 +1,52 @@
-
-dMass m;
-static dBodyID body;
-static dGeomID geom;
-
+// dynamics and collision objects
 static dWorldID world;
 static dSpaceID space;
-
-dReal* pos;
-dReal* R;
+static dBodyID body;	
+static dGeomID geom;	
+static dMass m;
+static dJointGroupID contactgroup;
 
 void world_init()
 {
-  // create an ODE physics object
+   dInitODE ();
+   // create world
+   world = dWorldCreate ();
+   space = dHashSpaceCreate (0);
+   dWorldSetGravity (world,0,0,-300);
+   dWorldSetCFM (world,1e-5);
+   dCreatePlane (space,0,0,1,0);
+   contactgroup = dJointGroupCreate (0);
+   // create object
+   body = dBodyCreate (world);
+   geom = dCreateSphere (space,5);
+   dMassSetSphere (&m,1,0.5);
+   dBodySetMass (body,&m);
+   dGeomSetBody (geom,body);
+   // set initial position
+   dBodySetPosition (body,30,-30,30);
 
-  body = dBodyCreate(world);
-  dBodySetPosition(body, 0, 0, 5);
+}
 
-  //dRFromAxisAndAngle(R, x, y, z, angle) // ?
-  dRSetIdentity (R);
-
-  dBodySetRotation (body, R);
-
-  // so it can know it's index ? (when in an array)
-  // dBodySetData (obj[i].body,(void*) i);
-
-  dMassSetBox (&m, .5, 1, 1, 1);
-  geom = dCreateBox (space, 1, 1, 1);
-
-  dGeomSetBody(geom, body);
-  dBodySetMass(body, &m);
+// this is called by dSpaceCollide when two objects in space are
+// potentially colliding.
+static void nearCallback (void *data, dGeomID o1, dGeomID o2)
+{
+   dBodyID b1 = dGeomGetBody(o1);
+   dBodyID b2 = dGeomGetBody(o2);
+   dContact contact;  
+   contact.surface.mode = dContactBounce | dContactSoftCFM;
+   // friction parameter
+   contact.surface.mu = dInfinity;
+   // bounce is the amount of "bouncyness".
+   contact.surface.bounce = 0.6;
+   // bounce_vel is the minimum incoming velocity to cause a bounce
+   contact.surface.bounce_vel = 0.1;
+   // constraint force mixing parameter
+   contact.surface.soft_cfm = 0.001;  
+   if (dCollide (o1,o2,1,&contact.geom,sizeof(dContact))) {
+       dJointID c = dJointCreateContact (world,contactgroup,&contact);
+       dJointAttach (c,b1,b2);
+   }
 }
 
 void scene_discotech_update()
@@ -50,66 +68,18 @@ void world_update()
 {
   scene_discotech_update();
 
-  dGeomID g =  geom;
+  const dReal *pos;
+  const dReal *R;
+  // find collisions and add contact joints
+  dSpaceCollide (space,0,&nearCallback);
+  // step the simulation
+  dWorldQuickStep (world,0.01);  
+  // remove all contact joints
+  dJointGroupEmpty (contactgroup);
+  // redraw sphere at new location
+  pos = dGeomGetPosition (geom);
+  R = dGeomGetRotation (geom); // rotation
 
-  // draw ODE object
-  pos = dGeomGetPosition (g);
-  R = dGeomGetRotation (g);
-
-  dQuaternion Q;
-  dGeomGetQuaternion(g, Q);
-  int type = dGeomGetClass (g);
-
-  if (type == dBoxClass) {
-    dVector3 sides;
-    dGeomBoxGetLengths (g,sides);
-    // GRAPHICS dsDrawBox (pos,R,sides);
-    float scale = 10;
-
-    Vector3 rlPos;
-    rlPos.x = scale*pos[0];
-    rlPos.y = scale*pos[1];
-    rlPos.z = scale*pos[2];
-
-    Vector3 size;
-    size.x = scale*sides[0];
-    size.y = scale*sides[1];
-    size.z = scale*sides[2];
-
-    Vector3 zero;
-    zero.x = 0;
-    zero.y = 0;
-    zero.z = 0;
-
-    // R is rotation of type dMatrix3 (a 3x4 matrix, with an extra 0 col)
-    rlPushMatrix();
-    rlTranslatef(rlPos.x, rlPos.y, rlPos.z);
-
-    // derive angle and axis of rotation from Quaternion
-    // Thx to https://eater.net/quaternions/video/intro for explaining Quaternions to me !
-    float angle = acos(Q[0])*2;
-    float axis_x = Q[1];
-    float axis_y = Q[2];
-    float axis_z = Q[3];
-    if (sin(angle) == 0)
-    {
-      axis_x = 1;
-      axis_y = 0;
-      axis_z = 0;
-    }
-    else
-    {
-      axis_x /= sin(angle);
-      axis_y /= sin(angle);
-      axis_z /= sin(angle);
-    }
-
-    // rlRotatef takes degrees
-    rlRotatef(180/PI*angle, axis_x, axis_y, axis_z);
-
-    Color c = RED;
-    c.r -= 100*sin(size.x+rlPos.x); // "random" shade of red
-    DrawCube(zero, size.x, size.y, size.z, c);
-    rlPopMatrix();
-  }
+  Vector3 p = {pos[0], pos[1], pos[2]};
+  DrawSphere(p, 5, BLACK);
 }

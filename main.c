@@ -79,6 +79,12 @@ int main(void)
     update();
   }
 
+   // clean up (physics)
+   dJointGroupDestroy (contactgroup);
+   dSpaceDestroy (space);
+   dWorldDestroy (world);
+   dCloseODE();
+
   CloseWindow();
   CloseAudioDevice();
 
