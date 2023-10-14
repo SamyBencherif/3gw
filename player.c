@@ -19,6 +19,12 @@ void player_move(float x, float y)
 {
   camera.position.x += x;
   camera.position.y += y;
+
+  if (gameobjects_count >= 1 && !NOCLIP)
+  {
+    gameobject* g = &gameobjects[0];
+    dGeomSetPosition (g->geom, camera.position.x, camera.position.y, 10);
+  }
 }
 
 void player_jump()

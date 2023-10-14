@@ -14,10 +14,20 @@ void world_init()
   dCreatePlane (space, 0, 0, 1, 0);
   contactgroup = dJointGroupCreate (0);
 
-  // create ball
+  // create player geom (capsule)
   float radius = 5;
+  float length = 12;
   float density = .0001;
   gameobject* g = gameobject_create();
+  g->geom = dCreateCapsule (space, radius, length);
+  dMassSetCapsule (&(g->mass), density, 1, radius, length);
+  dGeomSetPosition (g->geom, 0, 0, 10);
+  g->color = BLACK;
+
+  // create ball
+  radius = 5;
+  density = .0001;
+  g = gameobject_create();
   g->body = dBodyCreate (world);
   g->geom = dCreateSphere (space, radius);
   dMassSetSphere (&(g->mass), density, radius);
