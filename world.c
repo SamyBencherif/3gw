@@ -5,26 +5,49 @@ static dJointGroupID contactgroup;
 
 void world_init()
 {
-   // initialize physics
-   dInitODE ();
-   world = dWorldCreate ();
-   space = dHashSpaceCreate (0);
-   dWorldSetGravity (world, 0, 0, -300);
-   dWorldSetCFM (world, 1e-5);
-   dCreatePlane (space, 0, 0, 1, 0);
-   contactgroup = dJointGroupCreate (0);
+  // initialize physics
+  dInitODE ();
+  world = dWorldCreate ();
+  space = dHashSpaceCreate (0);
+  dWorldSetGravity (world, 0, 0, -300);
+  dWorldSetCFM (world, 1e-5);
+  dCreatePlane (space, 0, 0, 1, 0);
+  contactgroup = dJointGroupCreate (0);
 
-   // create ball
-   float radius = 5;
-   float density = .0001;
-   gameobject* g = gameobject_create();
-   g->body = dBodyCreate (world);
-   g->geom = dCreateSphere (space, radius);
-   dMassSetSphere (&(g->mass), density, radius);
-   dBodySetMass (g->body, &(g->mass));
-   dGeomSetBody (g->geom, g->body);
-   // set initial position
-   dBodySetPosition (g->body, 30, -30, 30);
+  // create ball
+  float radius = 5;
+  float density = .0001;
+  gameobject* g = gameobject_create();
+  g->body = dBodyCreate (world);
+  g->geom = dCreateSphere (space, radius);
+  dMassSetSphere (&(g->mass), density, radius);
+  dBodySetMass (g->body, &(g->mass));
+  dGeomSetBody (g->geom, g->body);
+  // set initial position
+  dBodySetPosition (g->body, 30, -30, 30);
+
+  // create ball 2
+  radius = 5;
+  density = .0001;
+  g = gameobject_create();
+  g->body = dBodyCreate (world);
+  g->geom = dCreateSphere (space, radius);
+  dMassSetSphere (&(g->mass), density, radius);
+  dBodySetMass (g->body, &(g->mass));
+  dGeomSetBody (g->geom, g->body);
+  // set initial position
+  dBodySetPosition (g->body, 30, 30, 30);
+
+  // create cube
+  density = .0001;
+  g = gameobject_create();
+  g->body = dBodyCreate (world);
+  g->geom = dCreateBox (space, 1, 1, 1);
+  dMassSetBox (&(g->mass), density, 1, 1, 1);
+  dBodySetMass (g->body, &(g->mass));
+  dGeomSetBody (g->geom, g->body);
+  // set initial position
+  dBodySetPosition (g->body, 60, 30, 30);
 
 }
 
@@ -73,7 +96,8 @@ void world_update()
   dSpaceCollide (space, 0, &nearCallback);
 
   // step the simulation
-  dWorldQuickStep (world, 0.01);  
+  if (!paused)
+    dWorldQuickStep (world, 0.01);  
 
   // remove all contact joints
   dJointGroupEmpty (contactgroup);
@@ -81,9 +105,23 @@ void world_update()
   // redraw sphere at new location
   for (int i=0; i<gameobjects_count; i++)
   {
-    const dReal *pos = dGeomGetPosition (gameobjects[i].geom);
-    const dReal *rot = dGeomGetRotation (gameobjects[i].geom);
-    Vector3 p = {pos[0], pos[1], pos[2]};
-    DrawSphere(p, 5, BLACK);
+    gameobject* g = &gameobjects[i];
+
+    const dReal *pos = dGeomGetPosition (g->geom);
+    const dReal *rot = dGeomGetRotation (g->geom);
+    
+    Vector3 p;
+    
+    switch (dGeomGetClass(g->geom))
+    {
+      case dSphereClass:
+        p.x = pos[0]; p.y = pos[1]; p.z = pos[2];
+        DrawSphere(p, 5, BLACK);
+        break;
+      default:
+        p.x = pos[0]; p.y = pos[1]; p.z = pos[2];
+        DrawSphere(p, 5, MAGENTA);
+        break;
+    }
   }
 }
