@@ -1,29 +1,30 @@
 // dynamics and collision objects
 static dWorldID world;
 static dSpaceID space;
-static dBodyID body;	
-static dGeomID geom;	
-static dMass m;
 static dJointGroupID contactgroup;
 
 void world_init()
 {
+   // initialize physics
    dInitODE ();
-   // create world
    world = dWorldCreate ();
    space = dHashSpaceCreate (0);
-   dWorldSetGravity (world,0,0,-300);
-   dWorldSetCFM (world,1e-5);
-   dCreatePlane (space,0,0,1,0);
+   dWorldSetGravity (world, 0, 0, -300);
+   dWorldSetCFM (world, 1e-5);
+   dCreatePlane (space, 0, 0, 1, 0);
    contactgroup = dJointGroupCreate (0);
-   // create object
-   body = dBodyCreate (world);
-   geom = dCreateSphere (space,5);
-   dMassSetSphere (&m,1,0.5);
-   dBodySetMass (body,&m);
-   dGeomSetBody (geom,body);
+
+   // create ball
+   float radius = 5;
+   float density = .0001;
+   gameobject* g = gameobject_create();
+   g->body = dBodyCreate (world);
+   g->geom = dCreateSphere (space, radius);
+   dMassSetSphere (&(g->mass), density, radius);
+   dBodySetMass (g->body, &(g->mass));
+   dGeomSetBody (g->geom, g->body);
    // set initial position
-   dBodySetPosition (body,30,-30,30);
+   dBodySetPosition (g->body, 30, -30, 30);
 
 }
 
@@ -43,9 +44,9 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
    contact.surface.bounce_vel = 0.1;
    // constraint force mixing parameter
    contact.surface.soft_cfm = 0.001;  
-   if (dCollide (o1,o2,1,&contact.geom,sizeof(dContact))) {
-       dJointID c = dJointCreateContact (world,contactgroup,&contact);
-       dJointAttach (c,b1,b2);
+   if (dCollide (o1, o2, 1, &contact.geom, sizeof(dContact))) {
+       dJointID c = dJointCreateContact (world, contactgroup, &contact);
+       dJointAttach (c, b1, b2);
    }
 }
 
@@ -68,18 +69,21 @@ void world_update()
 {
   scene_discotech_update();
 
-  const dReal *pos;
-  const dReal *R;
   // find collisions and add contact joints
-  dSpaceCollide (space,0,&nearCallback);
+  dSpaceCollide (space, 0, &nearCallback);
+
   // step the simulation
-  dWorldQuickStep (world,0.01);  
+  dWorldQuickStep (world, 0.01);  
+
   // remove all contact joints
   dJointGroupEmpty (contactgroup);
-  // redraw sphere at new location
-  pos = dGeomGetPosition (geom);
-  R = dGeomGetRotation (geom); // rotation
 
-  Vector3 p = {pos[0], pos[1], pos[2]};
-  DrawSphere(p, 5, BLACK);
+  // redraw sphere at new location
+  for (int i=0; i<gameobjects_count; i++)
+  {
+    const dReal *pos = dGeomGetPosition (gameobjects[i].geom);
+    const dReal *rot = dGeomGetRotation (gameobjects[i].geom);
+    Vector3 p = {pos[0], pos[1], pos[2]};
+    DrawSphere(p, 5, BLACK);
+  }
 }
