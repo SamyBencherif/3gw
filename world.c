@@ -52,6 +52,15 @@ void world_init()
   dBodySetPosition (g->body, 60, 30, 30);
   g->color = RED;
 
+  // create static cube
+  density = .0001;
+  g = gameobject_create();
+  g->geom = dCreateBox (space, 10, 10, 10);
+  dGeomSetBody (g->geom, g->body);
+  // set initial position
+  dGeomSetPosition (g->geom, -60, 30, 30);
+  g->color = PINK;
+
 }
 
 // this is called by dSpaceCollide when two objects in space are
