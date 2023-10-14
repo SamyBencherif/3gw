@@ -25,6 +25,7 @@ void world_init()
   dGeomSetBody (g->geom, g->body);
   // set initial position
   dBodySetPosition (g->body, 30, -30, 30);
+  g->color = BLACK;
 
   // create ball 2
   radius = 5;
@@ -37,17 +38,19 @@ void world_init()
   dGeomSetBody (g->geom, g->body);
   // set initial position
   dBodySetPosition (g->body, 30, 30, 30);
+  g->color = BLUE;
 
   // create cube
   density = .0001;
   g = gameobject_create();
   g->body = dBodyCreate (world);
-  g->geom = dCreateBox (space, 1, 1, 1);
-  dMassSetBox (&(g->mass), density, 1, 1, 1);
+  g->geom = dCreateBox (space, 10, 10, 10);
+  dMassSetBox (&(g->mass), density, 10, 10, 10);
   dBodySetMass (g->body, &(g->mass));
   dGeomSetBody (g->geom, g->body);
   // set initial position
   dBodySetPosition (g->body, 60, 30, 30);
+  g->color = RED;
 
 }
 
@@ -110,13 +113,60 @@ void world_update()
     const dReal *pos = dGeomGetPosition (g->geom);
     const dReal *rot = dGeomGetRotation (g->geom);
     
+    // variables needed by switch-case
     Vector3 p;
+    Vector3 size;
+    Vector3 zero = {0,0,0};
+
+    dVector3 sides;
+    dQuaternion Q;
     
     switch (dGeomGetClass(g->geom))
     {
       case dSphereClass:
         p.x = pos[0]; p.y = pos[1]; p.z = pos[2];
-        DrawSphere(p, 5, BLACK);
+        DrawSphere(p, 5, g->color);
+        break;
+      case dBoxClass:
+        dGeomBoxGetLengths (g->geom,sides);
+        dGeomGetQuaternion(g->geom, Q);
+
+        p.x = pos[0];
+        p.y = pos[1];
+        p.z = pos[2];
+
+        size.x = sides[0];
+        size.y = sides[1];
+        size.z = sides[2];
+  
+        // R is rotation of type dMatrix3 (a 3x4 matrix, with an extra 0 col)
+        rlPushMatrix();
+        rlTranslatef(p.x, p.y, p.z);
+
+        // derive angle and axis of rotation from Quaternion
+        // Thx to https://eater.net/quaternions/video/intro for explaining Quaternions to me !
+        float angle = acos(Q[0])*2;
+        float axis_x = Q[1];
+        float axis_y = Q[2];
+        float axis_z = Q[3];
+        if (sin(angle) == 0)
+        {
+          axis_x = 1;
+          axis_y = 0;
+          axis_z = 0;
+        }
+        else
+        {
+          axis_x /= sin(angle);
+          axis_y /= sin(angle);
+          axis_z /= sin(angle);
+        }
+
+        // rlRotatef takes degrees
+        rlRotatef(180/PI*angle, axis_x, axis_y, axis_z);
+
+        DrawCube(zero, size.x, size.y, size.z, g->color);
+        rlPopMatrix();
         break;
       default:
         p.x = pos[0]; p.y = pos[1]; p.z = pos[2];
