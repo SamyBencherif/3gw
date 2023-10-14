@@ -1,7 +1,3 @@
-// dynamics and collision objects
-static dWorldID world;
-static dSpaceID space;
-static dJointGroupID contactgroup;
 
 void world_init()
 {
@@ -21,18 +17,17 @@ void world_init()
   gameobject* g = gameobject_create();
   g->geom = dCreateCapsule (space, radius, length);
   dMassSetCapsule (&(g->mass), density, 1, radius, length);
-  dGeomSetPosition (g->geom, 0, 0, 10);
+  gameobject_init_body(g);
+  dBodySetPosition (g->body, 0, 0, 10);
   g->color = BLACK;
 
   // create ball
   radius = 5;
   density = .0001;
   g = gameobject_create();
-  g->body = dBodyCreate (world);
   g->geom = dCreateSphere (space, radius);
   dMassSetSphere (&(g->mass), density, radius);
-  dBodySetMass (g->body, &(g->mass));
-  dGeomSetBody (g->geom, g->body);
+  gameobject_init_body(g);
   // set initial position
   dBodySetPosition (g->body, 30, -30, 30);
   g->color = BLACK;
@@ -41,11 +36,9 @@ void world_init()
   radius = 5;
   density = .0001;
   g = gameobject_create();
-  g->body = dBodyCreate (world);
   g->geom = dCreateSphere (space, radius);
   dMassSetSphere (&(g->mass), density, radius);
-  dBodySetMass (g->body, &(g->mass));
-  dGeomSetBody (g->geom, g->body);
+  gameobject_init_body(g);
   // set initial position
   dBodySetPosition (g->body, 30, 30, 30);
   g->color = BLUE;
@@ -53,11 +46,9 @@ void world_init()
   // create cube
   density = .0001;
   g = gameobject_create();
-  g->body = dBodyCreate (world);
   g->geom = dCreateBox (space, 10, 10, 10);
   dMassSetBox (&(g->mass), density, 10, 10, 10);
-  dBodySetMass (g->body, &(g->mass));
-  dGeomSetBody (g->geom, g->body);
+  gameobject_init_body(g);
   // set initial position
   dBodySetPosition (g->body, 60, 30, 30);
   g->color = RED;
@@ -66,7 +57,6 @@ void world_init()
   density = .0001;
   g = gameobject_create();
   g->geom = dCreateBox (space, 10, 10, 10);
-  dGeomSetBody (g->geom, g->body);
   // set initial position
   dGeomSetPosition (g->geom, -60, 30, 30);
   g->color = PINK;

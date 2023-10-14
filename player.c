@@ -23,7 +23,7 @@ void player_move(float x, float y)
   if (gameobjects_count >= 1 && !NOCLIP)
   {
     gameobject* g = &gameobjects[0];
-    dGeomSetPosition (g->geom, camera.position.x, camera.position.y, 10);
+    dBodySetPosition (g->body, camera.position.x, camera.position.y, 10);
   }
 }
 
