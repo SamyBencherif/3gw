@@ -51,7 +51,11 @@ void update(void)
 
 int main(void)
 {
+  #ifndef PLATFORM_NT
   srandom(0x0);
+  #else
+  srand(0x0);
+  #endif
   //SetTraceLogLevel(LOG_ERROR);
 
   int width = GetScreenWidth();

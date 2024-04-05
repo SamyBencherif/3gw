@@ -8,7 +8,11 @@
 # There should be raylib.h in /usr/local/include
 #    you can copy the include folder
 
-default: mac
+default: windows 
+
+# Microsoft Windows 11
+windows:
+	gcc main.c -o game.exe -lraylib -lgdi32 -lwinmm -DPLATFORM_NT
 
 # Debian / Ubuntu
 linux:

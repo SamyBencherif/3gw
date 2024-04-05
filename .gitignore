@@ -1,2 +1,6 @@
 # binary
 /game
+/game.exe
+
+# vim files
+.*.swp
