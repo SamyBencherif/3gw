@@ -445,7 +445,7 @@ function pickupObject(obj) {
     heldObject = obj;
     // Make the object kinematic (doesn't respond to physics)
     heldObject.body.type = CANNON.Body.KINEMATIC;
-    heldObject.body.collisionResponse = true;
+    heldObject.body.collisionResponse = false;
     interactPromptElement.style.display = 'none';
 }
 
@@ -460,6 +460,7 @@ function throwObject() {
     
     // Make object dynamic again
     heldObject.body.type = CANNON.Body.DYNAMIC;
+    heldObject.body.collisionResponse = true;
     heldObject.body.velocity.set(
         throwDirection.x * throwSpeed,
         throwDirection.y * throwSpeed,
