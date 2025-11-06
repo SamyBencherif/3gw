@@ -89,6 +89,16 @@
                 }
                 canJump = false;
                 break;
+
+            case 69: // e - interact
+                if (heldObject) {
+                    // Already holding object, throw it
+                    throwObject();
+                } else if (nearestInteractive) {
+                    // Pick up nearest object
+                    pickupObject(nearestInteractive);
+                }
+                break;
         }
 
     };

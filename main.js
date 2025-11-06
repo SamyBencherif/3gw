@@ -1,9 +1,19 @@
 
 var sphereShape, playerBody, world, physicsMaterial, walls=[], balls=[], ballMeshes=[], boxes=[], boxMeshes=[];
+var interactiveObjects = []; // Track objects that can be picked up
 
 var camera, scene, renderer;
 var geometry, material, mesh;
 var controls,time = Date.now();
+
+// Interaction system variables
+var heldObject = null; // Currently held object {body, mesh}
+var nearestInteractive = null; // Nearest interactive object
+var interactionDistance = 5.0; // Maximum distance to interact
+var interactionDistanceSq = interactionDistance * interactionDistance; // Squared distance for optimization
+var holdDistance = 3.0; // Distance to hold object in front of camera
+var throwSpeed = 10; // Speed to throw objects
+var interactPromptElement = null; // Cached DOM element
 
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
@@ -155,6 +165,9 @@ function init() {
     document.body.appendChild( renderer.domElement );
 
     window.addEventListener( 'resize', onWindowResize, false );
+
+    // Cache the interact prompt element
+    interactPromptElement = document.getElementById('interactPrompt');
 }
 
 function onWindowResize() {
@@ -179,6 +192,14 @@ function animate() {
         for(var i=0; i<boxes.length; i++){
             boxMeshes[i].position.copy(boxes[i].position);
             boxMeshes[i].quaternion.copy(boxes[i].quaternion);
+        }
+
+        // Update held object position
+        if (heldObject) {
+            updateHeldObject();
+        } else {
+            // Check for nearby interactive objects
+            checkNearbyInteractives();
         }
     }
 
@@ -356,6 +377,10 @@ function interactive(x, y, z, texture)
     boxes.push(boxBody);
     boxMeshes.push(boxMesh);
 
+    // Track this as an interactive object
+    var interactiveObj = {body: boxBody, mesh: boxMesh};
+    interactiveObjects.push(interactiveObj);
+
     return boxMesh
 }
 
@@ -373,6 +398,75 @@ function stripes(color0, color1, size, traverseDir)
 function checkerboard(color0, color1, size)
 {
   return generateTexture(1024, 1024, (x,y)=>[color0, color1][(~~(x/size)+~~(y/size))%2])
+}
+
+function checkNearbyInteractives() {
+    var playerPos = playerBody.position;
+    var minDistSq = interactionDistanceSq;
+    nearestInteractive = null;
+
+    for (var i = 0; i < interactiveObjects.length; i++) {
+        var obj = interactiveObjects[i];
+        var objPos = obj.body.position;
+        var dx = playerPos.x - objPos.x;
+        var dy = playerPos.y - objPos.y;
+        var dz = playerPos.z - objPos.z;
+        var distSq = dx*dx + dy*dy + dz*dz;
+
+        if (distSq < minDistSq) {
+            minDistSq = distSq;
+            nearestInteractive = obj;
+        }
+    }
+
+    if (nearestInteractive) {
+        interactPromptElement.style.display = 'block';
+    } else {
+        interactPromptElement.style.display = 'none';
+    }
+}
+
+function updateHeldObject() {
+    // Position object in front of the camera
+    var direction = new THREE.Vector3(0, 0, -1);
+    direction.applyQuaternion(camera.quaternion);
+    
+    var targetPos = new THREE.Vector3();
+    targetPos.copy(camera.position);
+    targetPos.add(direction.multiplyScalar(holdDistance));
+
+    // Make physics body kinematic while held
+    heldObject.body.velocity.set(0, 0, 0);
+    heldObject.body.angularVelocity.set(0, 0, 0);
+    heldObject.body.position.set(targetPos.x, targetPos.y, targetPos.z);
+    heldObject.mesh.position.copy(heldObject.body.position);
+}
+
+function pickupObject(obj) {
+    heldObject = obj;
+    // Make the object kinematic (doesn't respond to physics)
+    heldObject.body.type = CANNON.Body.KINEMATIC;
+    heldObject.body.collisionResponse = false;
+    interactPromptElement.style.display = 'none';
+}
+
+function throwObject() {
+    if (!heldObject) return;
+
+    // Get throw direction from camera
+    var throwDirection = new THREE.Vector3(0, 0, -1);
+    throwDirection.applyQuaternion(camera.quaternion);
+    
+    // Make object dynamic again
+    heldObject.body.type = CANNON.Body.DYNAMIC;
+    heldObject.body.collisionResponse = true;
+    heldObject.body.velocity.set(
+        throwDirection.x * throwSpeed,
+        throwDirection.y * throwSpeed,
+        throwDirection.z * throwSpeed
+    );
+    
+    heldObject = null;
 }
 
 function player(x,y,z,lookX,lookY,lookZ)
