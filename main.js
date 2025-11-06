@@ -11,6 +11,8 @@ var heldObject = null; // Currently held object {body, mesh}
 var nearestInteractive = null; // Nearest interactive object
 var interactionDistance = 5.0; // Maximum distance to interact
 var interactionDistanceSq = interactionDistance * interactionDistance; // Squared distance for optimization
+var holdDistance = 3.0; // Distance to hold object in front of camera
+var throwSpeed = 10; // Speed to throw objects
 var interactPromptElement = null; // Cached DOM element
 
 var blocker = document.getElementById( 'blocker' );
@@ -426,7 +428,6 @@ function checkNearbyInteractives() {
 
 function updateHeldObject() {
     // Position object in front of the camera
-    var holdDistance = 3.0;
     var direction = new THREE.Vector3(0, 0, -1);
     direction.applyQuaternion(camera.quaternion);
     
@@ -455,8 +456,6 @@ function throwObject() {
     // Get throw direction from camera
     var throwDirection = new THREE.Vector3(0, 0, -1);
     throwDirection.applyQuaternion(camera.quaternion);
-    
-    var throwSpeed = 10;
     
     // Make object dynamic again
     heldObject.body.type = CANNON.Body.DYNAMIC;
