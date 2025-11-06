@@ -10,6 +10,8 @@ var controls,time = Date.now();
 var heldObject = null; // Currently held object {body, mesh}
 var nearestInteractive = null; // Nearest interactive object
 var interactionDistance = 5.0; // Maximum distance to interact
+var interactionDistanceSq = interactionDistance * interactionDistance; // Squared distance for optimization
+var interactPromptElement = null; // Cached DOM element
 
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
@@ -161,6 +163,9 @@ function init() {
     document.body.appendChild( renderer.domElement );
 
     window.addEventListener( 'resize', onWindowResize, false );
+
+    // Cache the interact prompt element
+    interactPromptElement = document.getElementById('interactPrompt');
 }
 
 function onWindowResize() {
@@ -394,9 +399,8 @@ function checkerboard(color0, color1, size)
 }
 
 function checkNearbyInteractives() {
-    var interactPrompt = document.getElementById('interactPrompt');
     var playerPos = playerBody.position;
-    var minDist = interactionDistance;
+    var minDistSq = interactionDistanceSq;
     nearestInteractive = null;
 
     for (var i = 0; i < interactiveObjects.length; i++) {
@@ -405,18 +409,18 @@ function checkNearbyInteractives() {
         var dx = playerPos.x - objPos.x;
         var dy = playerPos.y - objPos.y;
         var dz = playerPos.z - objPos.z;
-        var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        var distSq = dx*dx + dy*dy + dz*dz;
 
-        if (dist < minDist) {
-            minDist = dist;
+        if (distSq < minDistSq) {
+            minDistSq = distSq;
             nearestInteractive = obj;
         }
     }
 
     if (nearestInteractive) {
-        interactPrompt.style.display = 'block';
+        interactPromptElement.style.display = 'block';
     } else {
-        interactPrompt.style.display = 'none';
+        interactPromptElement.style.display = 'none';
     }
 }
 
@@ -442,7 +446,7 @@ function pickupObject(obj) {
     // Make the object kinematic (doesn't respond to physics)
     heldObject.body.type = CANNON.Body.KINEMATIC;
     heldObject.body.collisionResponse = true;
-    document.getElementById('interactPrompt').style.display = 'none';
+    interactPromptElement.style.display = 'none';
 }
 
 function throwObject() {
